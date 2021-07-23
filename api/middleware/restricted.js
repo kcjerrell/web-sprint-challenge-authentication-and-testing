@@ -1,14 +1,35 @@
-module.exports = (req, res, next) => {
-  next();
-  /*
-    IMPLEMENT
 
-    1- On valid token in the Authorization header, call next.
+const jwt = require('jsonwebtoken');
+const { JWT_SECRET } = require('../secrets');
 
-    2- On missing token in the Authorization header,
-      the response body should include a string exactly as follows: "token required".
+async function verifyAsync(token) {
+  // eslint-disable-next-line no-unused-vars
+  return new Promise((resolve, reject) => {
+    jwt.verify(token, JWT_SECRET, (err, decodedToken) => {
+      if (err)
+      resolve(null);
+      else
+      resolve(decodedToken);
+    })
+  })
+}
 
-    3- On invalid or expired token in the Authorization header,
-      the response body should include a string exactly as follows: "token invalid".
-  */
-};
+/** @type {express.RequestHandler} */
+const restricted = async (req, res, next) => {
+  const token = req.headers.authorization;
+  if (!token) {
+    return next([401, "token required"]);
+  }
+
+  const decodedToken = await verifyAsync(token);
+
+  if (decodedToken) {
+    req.token = decodedToken;
+    return next();
+  }
+  else {
+    return next([401, "token invalid"]);
+  }
+}
+
+module.exports = restricted;
